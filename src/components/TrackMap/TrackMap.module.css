@@ -1,0 +1,40 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lapBadge {
+  font-family: var(--font-orbitron), monospace;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--kou-green);
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--kou-green);
+  border-radius: var(--radius-md);
+  background-color: rgba(0, 102, 94, 0.1);
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+}
+
+.car {
+  transition: cx 0.5s ease, cy 0.5s ease;
+}

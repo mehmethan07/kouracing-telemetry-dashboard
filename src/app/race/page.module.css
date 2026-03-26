@@ -1,0 +1,222 @@
+.raceMode {
+  position: fixed;
+  inset: 0;
+  background-color: #0a0c0d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  overflow: hidden;
+}
+
+/* Ambient background glow */
+.raceMode::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 600px;
+  height: 600px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 102, 94, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.exitBtn {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-color);
+  background-color: rgba(22, 25, 27, 0.8);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.exitBtn:hover {
+  border-color: var(--kou-green);
+  color: var(--kou-green);
+}
+
+.statusBadge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 700;
+  z-index: 10;
+}
+
+.online {
+  color: var(--status-ok);
+  border: 1px solid var(--status-ok);
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
+.offline {
+  color: var(--status-danger);
+  border: 1px solid var(--status-danger);
+  background-color: rgba(239, 68, 68, 0.08);
+  animation: pulse 2s infinite;
+}
+
+.stateBadge {
+  position: absolute;
+  top: 1rem;
+  right: 50%;
+  transform: translateX(50%);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--border-color);
+  background-color: rgba(22, 25, 27, 0.8);
+  color: var(--kou-white);
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  z-index: 10;
+  letter-spacing: 0.1em;
+}
+
+.alertOverlay {
+  position: absolute;
+  top: 4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid var(--status-danger);
+  border-radius: var(--radius-md);
+  color: var(--status-danger);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  animation: pulse 1.5s infinite;
+  z-index: 10;
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 500px;
+}
+
+.bottomBar {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  padding: 1.5rem 2rem;
+  width: 100%;
+  max-width: 900px;
+  margin-bottom: 2rem;
+  background-color: rgba(22, 25, 27, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(10px);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.3s ease;
+}
+
+.metric.danger {
+  color: var(--status-danger);
+}
+
+.metricLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.metricValue {
+  font-family: var(--font-orbitron), sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--kou-white);
+  line-height: 1;
+}
+
+.metricValueSmall {
+  font-family: var(--font-orbitron), sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--kou-white);
+  line-height: 1;
+}
+
+.metricUnit {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.danger .metricValue,
+.danger .metricValueSmall {
+  color: var(--status-danger);
+}
+
+.throttleMini {
+  width: 80px;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.throttleFill {
+  height: 100%;
+  background-color: var(--kou-green);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .bottomBar {
+    gap: 1.5rem;
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .metricValue {
+    font-size: 1.5rem;
+  }
+
+  .center {
+    max-width: 300px;
+  }
+}

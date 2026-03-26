@@ -1,0 +1,271 @@
+/* src/app/page.module.css */
+
+.dashboard {
+  padding: 1.5rem 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* --- HEADER --- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--kou-white);
+  text-transform: uppercase;
+}
+
+.subtitle {
+  font-size: 0.8rem;
+  color: var(--kou-green);
+  letter-spacing: 0.05em;
+  margin-top: 0.2rem;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.statusContainer {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.connected {
+  color: var(--status-ok);
+  border-color: var(--status-ok);
+  background-color: rgba(16, 185, 129, 0.08);
+}
+
+.disconnected {
+  color: var(--status-danger);
+  border-color: var(--status-danger);
+  background-color: rgba(239, 68, 68, 0.08);
+  animation: pulseAlert 2s infinite;
+}
+
+/* --- PANELS --- */
+.panel {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  transition: all var(--transition-normal);
+}
+
+.panel:hover {
+  border-color: rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-panel-hover);
+}
+
+.panelDanger {
+  border-color: var(--status-danger) !important;
+  background-color: rgba(239, 68, 68, 0.04) !important;
+  animation: pulseAlert 2s infinite;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.panelBody {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.panelValue {
+  font-family: var(--font-orbitron), sans-serif;
+  font-size: 2.75rem;
+  font-weight: 700;
+  color: var(--kou-white);
+  line-height: 1;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.04);
+}
+
+.panelValueSmall {
+  font-family: var(--font-orbitron), sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--kou-white);
+  line-height: 1;
+}
+
+.panelUnit {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-left: 0.4rem;
+  font-family: var(--font-inter), sans-serif;
+}
+
+.dangerText {
+  color: var(--status-danger) !important;
+}
+
+/* --- TOP SECTION --- */
+.topSection {
+  display: grid;
+  grid-template-columns: 300px 1fr 140px;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  align-items: stretch;
+}
+
+.gaugePanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.dataPanels {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.throttlePanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- MIDDLE SECTION --- */
+.middleSection {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.trackPanel {
+  padding: 1.25rem;
+}
+
+.faultPanel {
+  padding: 1.25rem;
+}
+
+/* --- CHARTS --- */
+.chartsSection {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.chartPanel {
+  padding: 1rem;
+  display: block;
+  min-width: 0;
+}
+
+/* --- ANIMATIONS --- */
+@keyframes pulseAlert {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.25); }
+  70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 1200px) {
+  .topSection {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .throttlePanel {
+    grid-column: 1 / -1;
+    min-width: unset;
+  }
+
+  .dataPanels {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .topSection {
+    grid-template-columns: 1fr;
+  }
+
+  .dataPanels {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .middleSection {
+    grid-template-columns: 1fr;
+  }
+
+  .chartsSection {
+    grid-template-columns: 1fr;
+  }
+
+  .panelValue {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 0.75rem;
+  }
+
+  .title {
+    font-size: 1.1rem;
+  }
+
+  .dataPanels {
+    grid-template-columns: 1fr;
+  }
+
+  .statusContainer {
+    flex-direction: column;
+  }
+
+  .panelValue {
+    font-size: 1.75rem;
+  }
+}

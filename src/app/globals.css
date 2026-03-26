@@ -1,0 +1,79 @@
+/* src/app/globals.css */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* --- KOU RACING OFFICIAL COLORS --- */
+  --kou-green: #00665E;
+  --kou-black: #16191B;
+  --kou-silver: #C7CBD0;
+  --kou-white: #F5F7F8;
+
+  /* --- SYSTEM VARIABLES --- */
+  --bg-main: var(--kou-black);
+  --bg-panel: #222629;
+  --bg-panel-hover: #282c30;
+  --border-color: #33393d;
+
+  --text-main: var(--kou-white);
+  --text-muted: var(--kou-silver);
+
+  /* --- STATUS COLORS --- */
+  --status-ok: #10B981;
+  --status-warning: #F59E0B;
+  --status-danger: #EF4444;
+
+  /* --- GLASSMORPHISM --- */
+  --glass-bg: rgba(34, 38, 41, 0.7);
+  --glass-border: rgba(51, 57, 61, 0.5);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--radius-md);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--kou-green);
+}
+
+/* Selection */
+::selection {
+  background-color: rgba(0, 102, 94, 0.3);
+  color: var(--kou-white);
+}
+
+/* Utility */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}

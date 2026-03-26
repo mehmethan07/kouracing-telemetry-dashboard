@@ -1,0 +1,5 @@
+.number {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  will-change: contents;
+}
