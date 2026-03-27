@@ -45,7 +45,7 @@ Vehicle → UDP → Telemetry Gateway (Node.js) → InfluxDB
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/mehmethan07/telemetry-dashboard.git
+   git clone https://github.com/mehmethan07/kouracing-telemetry-dashboard.git
    cd telemetry-dashboard
    ```
 
