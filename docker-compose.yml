@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  dashboard:
+    build: .
+    container_name: telemetry-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    # Eğer backend ayrı bir projeyse onu da buraya dahil edebiliriz.
+    # Eğer Raspberry Pi üzerinden seri port(USB) ile veri okuyorsanız aşağıdaki yorumları açın:
+    # devices:
+    #   - "/dev/ttyUSB0:/dev/ttyUSB0"
+    # privileged: true

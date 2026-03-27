@@ -60,10 +60,27 @@ Vehicle → UDP → Telemetry Gateway (Node.js) → InfluxDB
    cp .env.example .env.local
    ```
 
-4. Run Development Server:
+4. Run Local Development Server:
    ```bash
    npm run dev
    ```
+   > **Note:** For local development on your own computer, you do not need Docker. You can simply use `npm run dev` and work normally.
+
+## Deployment (Raspberry Pi / Production)
+
+The project includes Docker configuration optimized for Next.js standalone mode, perfectly suited for running on a Raspberry Pi 5 inside the race car.
+
+1. Ensure Docker and Docker Compose are installed on your target device.
+2. Clone/copy the project to the device.
+3. Start the application in detached mode:
+   ```bash
+   docker compose up -d --build
+   ```
+
+The dashboard will automatically restart whenever the vehicle/Raspberry Pi is powered on. To view logs, use:
+```bash
+docker compose logs -f
+```
 
 ## Development
 
