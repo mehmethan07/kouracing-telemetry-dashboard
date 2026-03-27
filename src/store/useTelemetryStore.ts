@@ -11,6 +11,7 @@ export interface TelemetryData {
   inverter_status: string;
   fault: boolean;
   fault_type: string;
+  lap: number; // For dynamic lap tracking
 }
 
 export interface FaultLogEntry {
@@ -27,6 +28,8 @@ interface TelemetryHistory {
   motor_temp: number[];
   battery_voltage: number[];
   throttle: number[];
+  laps: number[]; // Added lap tracking to history to segment charts dynamically
+  lastUpdated: number; // React Compiler bypass tick
 }
 
 interface TelemetryStore {
@@ -43,15 +46,14 @@ interface TelemetryStore {
 const initialData: TelemetryData = {
   rpm: 0, speed: 0, motor_temp: 20, battery_voltage: 0,
   throttle: 0, vehicle_state: 'Offline', inverter_status: 'Offline',
-  fault: false, fault_type: 'None'
+  fault: false, fault_type: 'None', lap: 1
 };
 
 const emptyHistory: TelemetryHistory = {
-  time: [], speed: [], rpm: [], motor_temp: [], battery_voltage: [], throttle: []
+  time: [], speed: [], rpm: [], motor_temp: [], battery_voltage: [], throttle: [], laps: [], lastUpdated: 0
 };
 
 const MAX_HISTORY_POINTS = 1200; // 10 Laps (120 points per lap)
-const POINTS_PER_LAP = 120;
 const MAX_FAULT_LOG = 50;
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
@@ -82,25 +84,51 @@ export const useTelemetryStore = create<TelemetryStore>((set, get) => ({
       set({ isConnected: false });
     });
 
-    socket.on('telemetry_update', (newData: TelemetryData) => {
+    socket.on('telemetry_update', (incomingData: Partial<TelemetryData> & { lap_trigger?: boolean }) => {
       const now = Math.floor(Date.now() / 1000);
 
       set((state) => {
-        const h = state.history;
-        const newHistory: TelemetryHistory = {
-          time: [...h.time, now].slice(-MAX_HISTORY_POINTS),
-          speed: [...h.speed, newData.speed].slice(-MAX_HISTORY_POINTS),
-          rpm: [...h.rpm, newData.rpm].slice(-MAX_HISTORY_POINTS),
-          motor_temp: [...h.motor_temp, newData.motor_temp].slice(-MAX_HISTORY_POINTS),
-          battery_voltage: [...h.battery_voltage, newData.battery_voltage].slice(-MAX_HISTORY_POINTS),
-          throttle: [...h.throttle, newData.throttle].slice(-MAX_HISTORY_POINTS),
+        // Dynamic Lap Detection: If hardware sends a lap_trigger or lap counter
+        let currentLap = state.data.lap;
+        if (incomingData.lap_trigger === true) {
+          currentLap++;
+        } else if (incomingData.lap && incomingData.lap > currentLap) {
+          currentLap = incomingData.lap;
+        }
+
+        const newData: TelemetryData = {
+          ...state.data,
+          ...incomingData,
+          lap: currentLap
         };
 
-        // Fault management: append new faults if detected
+        // 2. GARBAGE COLLECTION OPTIMIZATION: Ring Buffer / Mutable Arrays
+        // Mutate array references directly instead of cloning with spread operator
+        const h = state.history;
+        h.time.push(now);
+        h.speed.push(newData.speed);
+        h.rpm.push(newData.rpm);
+        h.motor_temp.push(newData.motor_temp);
+        h.battery_voltage.push(newData.battery_voltage);
+        h.throttle.push(newData.throttle);
+        h.laps.push(currentLap);
+
+        if (h.time.length > MAX_HISTORY_POINTS) {
+          h.time.shift();
+          h.speed.shift();
+          h.rpm.shift();
+          h.motor_temp.shift();
+          h.battery_voltage.shift();
+          h.throttle.shift();
+          h.laps.shift();
+        }
+        
+        h.lastUpdated = now; // Update primitive tick for components to know arrays mutated
+
+        // Fault management
         let newFaultLog = state.faultLog;
         if (newData.fault && newData.fault_type !== 'None') {
           const lastFault = state.faultLog[0];
-          // Prevent duplicate logs for the same continuous fault
           if (!lastFault || lastFault.type !== newData.fault_type || (now - lastFault.timestamp) > 5) {
             newFaultLog = [
               { timestamp: now, type: newData.fault_type, message: `${newData.fault_type} detected` },
@@ -111,7 +139,7 @@ export const useTelemetryStore = create<TelemetryStore>((set, get) => ({
 
         return {
           data: newData,
-          history: newHistory,
+          history: { ...h }, // Shallow clone the top-level object to notify React of updates
           faultLog: newFaultLog,
         };
       });

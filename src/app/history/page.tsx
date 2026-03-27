@@ -32,7 +32,8 @@ export default function HistoryPage() {
   const [sessions, setSessions] = useState<SessionRecord[]>(getStoredSessions);
   const [savedMsg, setSavedMsg] = useState('');
 
-  const saveCurrentSession = useCallback(() => {
+  // LocalStorage hala sadece Session MetaData'yı tutuyor (hafif, asenkron gerekmez)
+  const saveCurrentSession = useCallback(async () => {
     if (history.time.length === 0) return;
 
     const now = new Date();
@@ -49,37 +50,57 @@ export default function HistoryPage() {
       duration: `${mins}m ${secs}s`,
     };
 
-    // History verisini de kaydet
+    // HISTORY OBJEKSİNİ ASENKRON OLARAK INDEXEDDB'YE KAYDET (Ağır İşlem)
     try {
-      localStorage.setItem(`kou_session_data_${id}`, JSON.stringify(history));
-    } catch {
-      // localStorage dolu olabilir
+      const { saveSessionData } = await import('../../utils/idb');
+      await saveSessionData(id, history);
+      
+      const updated = [session, ...sessions];
+      setSessions(updated);
+      saveSessions(updated);
+      setSavedMsg('Session saved to IndexedDB!');
+    } catch (err) {
+      console.error('Failed to save session to IndexedDB:', err);
+      setSavedMsg('Error saving session');
     }
 
-    const updated = [session, ...sessions];
-    setSessions(updated);
-    saveSessions(updated);
-    setSavedMsg('Session saved!');
-    setTimeout(() => setSavedMsg(''), 2000);
+    setTimeout(() => setSavedMsg(''), 2500);
   }, [history, sessions]);
 
-  const deleteSession = useCallback((id: string) => {
+  const deleteSession = useCallback(async (id: string) => {
     const updated = sessions.filter((s) => s.id !== id);
     setSessions(updated);
     saveSessions(updated);
-    localStorage.removeItem(`kou_session_data_${id}`);
+    
+    // IndexedDB'den veriyi sil
+    try {
+      const { deleteSessionData } = await import('../../utils/idb');
+      await deleteSessionData(id);
+    } catch (err) {
+      console.error('Failed to delete session from IndexedDB:', err);
+    }
   }, [sessions]);
 
-  const downloadSession = useCallback((id: string) => {
-    const raw = localStorage.getItem(`kou_session_data_${id}`);
-    if (!raw) return;
-    const blob = new Blob([raw], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${id}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const downloadSession = useCallback(async (id: string) => {
+    try {
+      const { getSessionData } = await import('../../utils/idb');
+      const data = await getSessionData(id);
+      
+      if (!data) {
+        alert("Session data not found in IndexedDB!");
+        return;
+      }
+      
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${id}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+    }
   }, []);
 
   return (

@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import SpeedGauge from '../../components/SpeedGauge/SpeedGauge';
 import AnimatedNumber from '../../components/AnimatedNumber/AnimatedNumber';
 import { useTelemetryStore } from '../../store/useTelemetryStore';

@@ -20,7 +20,7 @@ function WeatherWidgetComponent() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [city, setCity] = useState('Kocaeli');
+  const [city] = useState('Kocaeli');
 
   const fetchWeather = useCallback(async () => {
     setLoading(true);

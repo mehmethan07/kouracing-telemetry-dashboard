@@ -65,10 +65,16 @@ export default function TelemetryChart({ title, color, data, yMin = 0, yMax = 15
       plotRef.current = new uPlot(options, data, plotContainerRef.current);
     }
 
-    // Initialize ResizeObserver to handle fluid layouts
+    // Initialize ResizeObserver to handle fluid layouts without triggering infinite loops
+    let lastWidth = containerRef.current?.clientWidth || 400;
     const resizeObserver = new ResizeObserver(() => {
       if (plotRef.current && containerRef.current) {
-        plotRef.current.setSize(getSize());
+        const newWidth = containerRef.current.clientWidth;
+        // Sadece genişlik anlamlı şekilde değişirse yeniden boyutlandır (Jitter'ı engeller)
+        if (Math.abs(newWidth - lastWidth) > 2) {
+          lastWidth = newWidth;
+          plotRef.current.setSize({ width: newWidth, height: 200 });
+        }
       }
     });
 

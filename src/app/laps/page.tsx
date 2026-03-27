@@ -1,6 +1,6 @@
 'use client';
 
-import { useTelemetryStore, type TelemetryData } from '../../store/useTelemetryStore';
+import { useTelemetryStore } from '../../store/useTelemetryStore';
 import { Timer, TrendingUp, TrendingDown, Minus, Trophy } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -16,26 +16,33 @@ interface LapData {
   progress: number;
 }
 
-/**
- * Internal logic to segment telemetry history into discrete lap batches.
- * Currently uses a fixed 'pointsPerLap' offset.
- */
 function generateLapData(history: ReturnType<typeof useTelemetryStore.getState>['history']): LapData[] {
-  if (history.time.length === 0) return [];
+  if (history.time.length === 0 || !history.laps || history.laps.length === 0) return [];
 
-  const laps: LapData[] = [];
-  const pointsPerLap = 120;
-  const totalLaps = Math.ceil(history.time.length / pointsPerLap);
+  const lapsData: Record<number, { start: number, end: number }> = {};
+  
+  for (let i = 0; i < history.laps.length; i++) {
+    const lapNum = history.laps[i];
+    if (!lapsData[lapNum]) {
+      lapsData[lapNum] = { start: i, end: i };
+    }
+    lapsData[lapNum].end = i;
+  }
 
-  for (let i = 0; i < Math.min(totalLaps, 10); i++) {
-    const start = i * pointsPerLap;
-    const end = Math.min(start + pointsPerLap, history.time.length);
-    const isCurrentLap = i === totalLaps - 1 && (end - start) < pointsPerLap;
+  const result: LapData[] = [];
+  const lapKeys = Object.keys(lapsData).map(Number).sort((a,b)=>a-b);
+  const totalLaps = lapKeys.length;
 
-    const speeds = history.speed.slice(start, end);
-    const rpms = history.rpm.slice(start, end);
-    const temps = history.motor_temp.slice(start, end);
-    const batteries = history.battery_voltage.slice(start, end);
+  for (let i = 0; i < totalLaps; i++) {
+    const lapNum = lapKeys[i];
+    const { start, end } = lapsData[lapNum];
+    const sliceEnd = end + 1; // slice is exclusive
+    const isCurrentLap = i === totalLaps - 1;
+
+    const speeds = history.speed.slice(start, sliceEnd);
+    const rpms = history.rpm.slice(start, sliceEnd);
+    const temps = history.motor_temp.slice(start, sliceEnd);
+    const batteries = history.battery_voltage.slice(start, sliceEnd);
 
     const avgSpeed = speeds.length ? speeds.reduce((a, b) => a + b, 0) / speeds.length : 0;
     const maxSpeed = speeds.length ? Math.max(...speeds) : 0;
@@ -43,12 +50,14 @@ function generateLapData(history: ReturnType<typeof useTelemetryStore.getState>[
     const maxTemp = temps.length ? Math.max(...temps) : 0;
     const avgBattery = batteries.length ? batteries.reduce((a, b) => a + b, 0) / batteries.length : 0;
 
-    const durationSec = end - start;
-    const mins = Math.floor(durationSec / 60);
-    const secs = durationSec % 60;
+    const durationSec = history.time[end] - history.time[start];
+    // Fallback if time is identical (e.g. mock data)
+    const effectiveSecs = Math.max(durationSec, speeds.length / 60); 
+    const mins = Math.floor(effectiveSecs / 60);
+    const secs = Math.floor(effectiveSecs % 60);
 
-    laps.push({
-      lap: i + 1,
+    result.push({
+      lap: lapNum,
       avgSpeed: Math.round(avgSpeed * 10) / 10,
       maxSpeed: Math.round(maxSpeed * 10) / 10,
       avgRpm: Math.round(avgRpm),
@@ -56,11 +65,11 @@ function generateLapData(history: ReturnType<typeof useTelemetryStore.getState>[
       avgBattery: Math.round(avgBattery * 10) / 10,
       duration: `${mins}:${secs.toString().padStart(2, '0')}`,
       status: isCurrentLap ? 'in-progress' : 'completed',
-      progress: Math.floor(((end - start) / pointsPerLap) * 100),
+      progress: isCurrentLap ? Math.min(100, Math.floor((speeds.length / 120) * 100)) : 100,
     });
   }
 
-  return laps;
+  return result;
 }
 
 export default function LapsPage() {

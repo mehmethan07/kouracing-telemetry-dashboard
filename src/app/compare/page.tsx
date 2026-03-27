@@ -142,16 +142,16 @@ export default function ComparePage() {
     } catch { /* ignore */ }
   }, []);
 
-  const loadSession = useCallback((id: string, name: string) => {
+  const loadSession = useCallback(async (id: string, name: string) => {
     if (sessions.length >= 4) return; // Max 4 sessions
     if (sessions.find((s) => s.name === name)) return; // Already loaded
 
     try {
-      const raw = localStorage.getItem(`kou_session_data_${id}`);
-      if (!raw) return;
-      const data = JSON.parse(raw) as SessionData;
+      const { getSessionData } = await import('../../utils/idb');
+      const data = await getSessionData(id);
+      if (!data) return;
       const color = COLORS[sessions.length % COLORS.length];
-      setSessions((prev) => [...prev, { name, data, color }]);
+      setSessions((prev) => [...prev, { name, data: data as unknown as SessionData, color }]);
     } catch { /* ignore */ }
   }, [sessions]);
 

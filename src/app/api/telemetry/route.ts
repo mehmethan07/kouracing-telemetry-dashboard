@@ -1,94 +1,109 @@
 import { NextResponse } from 'next/server';
+import { InfluxDB } from '@influxdata/influxdb-client';
 
-// In-memory telemetry store for the REST API
-// This holds the latest telemetry data received via the API
-let latestTelemetry = {
-  rpm: 0,
-  speed: 0,
-  motor_temp: 20,
-  battery_voltage: 0,
-  throttle: 0,
-  vehicle_state: 'Offline',
-  inverter_status: 'Offline',
-  fault: false,
-  fault_type: 'None',
-  timestamp: Date.now(),
-};
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-const telemetryHistory: Array<typeof latestTelemetry> = [];
-const MAX_HISTORY = 500;
+const token = process.env.INFLUX_TOKEN || '';
+const org = process.env.INFLUX_ORG || 'KOURACING';
+const bucket = process.env.INFLUX_BUCKET || 'telemetry_data';
+const url = process.env.INFLUX_URL || 'http://localhost:8086';
 
-// GET /api/telemetry — Get latest telemetry data or history
+const client = new InfluxDB({ url, token });
+const queryApi = client.getQueryApi(org);
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get('mode') || 'latest';
-  const limit = Math.min(parseInt(searchParams.get('limit') || '100'), MAX_HISTORY);
-  const format = searchParams.get('format') || 'json';
+  const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 500);
 
-  if (mode === 'history') {
-    const data = telemetryHistory.slice(-limit);
+  try {
+    if (mode === 'history') {
+      const fluxQuery = `
+        from(bucket: "${bucket}")
+          |> range(start: -${limit}s)
+          |> filter(fn: (r) => r._measurement == "telemetry")
+          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+          |> sort(columns: ["_time"], desc: false)
+      `;
 
-    if (format === 'csv') {
-      const headers = 'timestamp,speed,rpm,motor_temp,battery_voltage,throttle,vehicle_state,inverter_status,fault,fault_type\n';
-      const rows = data.map(d =>
-        `${d.timestamp},${d.speed},${d.rpm},${d.motor_temp},${d.battery_voltage},${d.throttle},${d.vehicle_state},${d.inverter_status},${d.fault},${d.fault_type}`
-      ).join('\n');
-      return new NextResponse(headers + rows, {
-        headers: {
-          'Content-Type': 'text/csv',
-          'Access-Control-Allow-Origin': '*',
-        },
+      const data: any[] = [];
+      await new Promise<void>((resolve, reject) => {
+        queryApi.queryRows(fluxQuery, {
+          next(row: any, tableMeta: any) {
+            const o = tableMeta.toObject(row);
+            data.push({
+              timestamp: new Date(o._time).getTime(),
+              speed: Number(o.speed || 0),
+              rpm: Number(o.rpm || 0),
+              motor_temp: Number(o.motor_temp || 0),
+              battery_voltage: Number(o.battery_voltage || 0),
+              throttle: Number(o.throttle || 0),
+              vehicle_state: o.vehicle_state || 'Offline',
+              inverter_status: o.inverter_status || 'Offline',
+              fault: o.fault === "true" || o.fault === true,
+              fault_type: o.fault_type || 'None'
+            });
+          },
+          error(error: any) { reject(error); },
+          complete() { resolve(); }
+        });
       });
+
+      return NextResponse.json({ count: data.length, data }, { headers: { 'Access-Control-Allow-Origin': '*' } });
     }
 
-    return NextResponse.json({
-      count: data.length,
-      data,
-    }, {
-      headers: { 'Access-Control-Allow-Origin': '*' },
+    // Default: latest
+    const fluxQueryLatest = `
+      from(bucket: "${bucket}")
+        |> range(start: -10s)
+        |> filter(fn: (r) => r._measurement == "telemetry")
+        |> last()
+        |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+    `;
+    const data: any[] = [];
+    await new Promise<void>((resolve, reject) => {
+      queryApi.queryRows(fluxQueryLatest, {
+        next(row: any, tableMeta: any) {
+          data.push(tableMeta.toObject(row));
+        },
+        error(error: any) { reject(error); },
+        complete() { resolve(); }
+      });
     });
-  }
 
-  // Default: latest
-  return NextResponse.json(latestTelemetry, {
-    headers: { 'Access-Control-Allow-Origin': '*' },
-  });
-}
+    if (data.length === 0) {
+       return NextResponse.json({ vehicle_state: 'Offline', info: 'No recent data in InfluxDB' }, { headers: { 'Access-Control-Allow-Origin': '*' } });
+    }
 
-// POST /api/telemetry — Push new telemetry data
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    latestTelemetry = {
-      rpm: body.rpm ?? latestTelemetry.rpm,
-      speed: body.speed ?? latestTelemetry.speed,
-      motor_temp: body.motor_temp ?? latestTelemetry.motor_temp,
-      battery_voltage: body.battery_voltage ?? latestTelemetry.battery_voltage,
-      throttle: body.throttle ?? latestTelemetry.throttle,
-      vehicle_state: body.vehicle_state ?? latestTelemetry.vehicle_state,
-      inverter_status: body.inverter_status ?? latestTelemetry.inverter_status,
-      fault: body.fault ?? latestTelemetry.fault,
-      fault_type: body.fault_type ?? latestTelemetry.fault_type,
-      timestamp: Date.now(),
+    const o = data[0];
+    const latestTelemetry = {
+      timestamp: new Date(o._time).getTime(),
+      speed: Number(o.speed || 0),
+      rpm: Number(o.rpm || 0),
+      motor_temp: Number(o.motor_temp || 0),
+      battery_voltage: Number(o.battery_voltage || 0),
+      throttle: Number(o.throttle || 0),
+      vehicle_state: o.vehicle_state || 'Online',
+      inverter_status: o.inverter_status || 'Active',
+      fault: o.fault === "true" || o.fault === true,
+      fault_type: o.fault_type || 'None'
     };
 
-    telemetryHistory.push({ ...latestTelemetry });
-    if (telemetryHistory.length > MAX_HISTORY) {
-      telemetryHistory.shift();
-    }
+    return NextResponse.json(latestTelemetry, { headers: { 'Access-Control-Allow-Origin': '*' } });
 
-    return NextResponse.json({ success: true, data: latestTelemetry }, {
-      headers: { 'Access-Control-Allow-Origin': '*' },
-    });
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, {
-      status: 400,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-    });
+  } catch (err) {
+    console.error('InfluxDB Query Error:', err);
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } });
   }
 }
 
-// OPTIONS for CORS
+export async function POST() {
+  return NextResponse.json(
+    { error: 'POST method via REST API is disabled. Telemetry Gateway streams directly to InfluxDB and Socket.io for performance reasons.' },
+    { status: 405, headers: { 'Access-Control-Allow-Origin': '*' } }
+  );
+}
+
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
