@@ -6,15 +6,19 @@ import { useTelemetryStore } from '../../store/useTelemetryStore';
 import styles from './ExportButton.module.css';
 
 function ExportButtonComponent() {
-  const history = useTelemetryStore((s) => s.history);
-
   const exportCSV = useCallback(() => {
+    const history = useTelemetryStore.getState().history;
     if (history.time.length === 0) return;
 
     const headers = ['timestamp', 'speed', 'rpm', 'motor_temp', 'battery_voltage', 'throttle'];
-    const rows = history.time.map((t, i) =>
-      [t, history.speed[i], history.rpm[i], history.motor_temp[i], history.battery_voltage[i], history.throttle[i]].join(',')
-    );
+    // Use explicit loop — Float64Array.map() returns Float64Array, not string[]
+    const rows: string[] = [];
+    for (let i = 0; i < history.time.length; i++) {
+      rows.push([
+        history.time[i], history.speed[i], history.rpm[i],
+        history.motor_temp[i], history.battery_voltage[i], history.throttle[i],
+      ].join(','));
+    }
     const csv = [headers.join(','), ...rows].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -24,19 +28,24 @@ function ExportButtonComponent() {
     link.download = `telemetry_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-  }, [history]);
+  }, []);
 
   const exportJSON = useCallback(() => {
+    const history = useTelemetryStore.getState().history;
     if (history.time.length === 0) return;
 
-    const data = history.time.map((t, i) => ({
-      timestamp: t,
-      speed: history.speed[i],
-      rpm: history.rpm[i],
-      motor_temp: history.motor_temp[i],
-      battery_voltage: history.battery_voltage[i],
-      throttle: history.throttle[i],
-    }));
+    // Build object array with explicit loop (Float64Array-safe)
+    const data: object[] = [];
+    for (let i = 0; i < history.time.length; i++) {
+      data.push({
+        timestamp:       history.time[i],
+        speed:           history.speed[i],
+        rpm:             history.rpm[i],
+        motor_temp:      history.motor_temp[i],
+        battery_voltage: history.battery_voltage[i],
+        throttle:        history.throttle[i],
+      });
+    }
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -45,7 +54,7 @@ function ExportButtonComponent() {
     link.download = `telemetry_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
     link.click();
     URL.revokeObjectURL(url);
-  }, [history]);
+  }, []);
 
   return (
     <div className={styles.container}>

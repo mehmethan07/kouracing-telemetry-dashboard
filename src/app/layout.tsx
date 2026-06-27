@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Orbitron } from "next/font/google";
 import AppShell from "../components/AppShell/AppShell";
 import TelemetryProvider from "../components/TelemetryProvider/TelemetryProvider";
+import { NotificationProvider } from "../components/NotificationSystem/NotificationSystem";
 import "./globals.css";
 
 const inter = Inter({
@@ -28,7 +29,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${orbitron.variable}`}>
         <TelemetryProvider>
-          <AppShell>{children}</AppShell>
+          <NotificationProvider>
+            <AppShell>{children}</AppShell>
+          </NotificationProvider>
         </TelemetryProvider>
       </body>
     </html>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Code, Play, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -13,64 +13,73 @@ interface Endpoint {
   response: string;
 }
 
-const endpoints: Endpoint[] = [
-  {
-    method: 'GET',
-    path: '/api/telemetry',
-    description: 'Get the latest telemetry data point',
-    example: 'curl http://localhost:3002/api/telemetry',
-    response: `{
+const PLACEHOLDER_ORIGIN = 'https://your-dashboard.vercel.app';
+
+function buildEndpoints(origin: string): Endpoint[] {
+  const base = origin.replace(/\/$/, '');
+  return [
+    {
+      method: 'GET',
+      path: '/api/telemetry',
+      description: 'Get the latest telemetry data point (proxied from Gateway)',
+      example: `curl "${base}/api/telemetry"`,
+      response: `{
   "rpm": 8500,
   "speed": 95,
   "motor_temp": 72.3,
   "battery_voltage": 385.2,
-  "throttle": 65,
+  "throttle": 0.65,
   "vehicle_state": "Drive",
   "inverter_status": "Active",
   "fault": false,
   "fault_type": "None",
   "timestamp": 1711389600000
 }`,
-  },
-  {
-    method: 'GET',
-    path: '/api/telemetry?mode=history',
-    description: 'Get telemetry history (up to 500 points)',
-    params: [
-      { name: 'mode', type: 'string', desc: '"history" to get array of past data' },
-      { name: 'limit', type: 'number', desc: 'Max points to return (default 100, max 500)' },
-      { name: 'format', type: 'string', desc: '"json" (default) or "csv"' },
-    ],
-    example: 'curl "http://localhost:3002/api/telemetry?mode=history&limit=50"',
-    response: `{
-  "count": 50,
+    },
+    {
+      method: 'GET',
+      path: '/api/telemetry?mode=history&seconds=3600',
+      description: 'Get telemetry history from InfluxDB via Gateway proxy',
+      params: [
+        { name: 'mode', type: 'string', desc: 'Must be "history"' },
+        {
+          name: 'seconds',
+          type: 'number',
+          desc: 'History window in seconds (min 10, max 86400; default 3600)',
+        },
+      ],
+      example: `curl "${base}/api/telemetry?mode=history&seconds=3600"`,
+      response: `{
+  "count": 1200,
   "data": [
-    { "rpm": 8500, "speed": 95, ... },
-    { "rpm": 8200, "speed": 92, ... }
+    {
+      "timestamp": 1711389600000,
+      "rpm": 8500,
+      "speed": 95,
+      "motor_temp": 72.3,
+      "battery_voltage": 385.2,
+      "throttle": 0.65,
+      "vehicle_state": "Drive",
+      "inverter_status": "Active",
+      "fault": false,
+      "fault_type": "None"
+    }
   ]
 }`,
-  },
-  {
-    method: 'GET',
-    path: '/api/telemetry?mode=history&format=csv',
-    description: 'Export telemetry history as CSV',
-    example: 'curl "http://localhost:3002/api/telemetry?mode=history&format=csv" -o data.csv',
-    response: `timestamp,speed,rpm,motor_temp,battery_voltage,throttle,...
-1711389600000,95,8500,72.3,385.2,65,...`,
-  },
-  {
-    method: 'POST',
-    path: '/api/telemetry',
-    description: 'Push new telemetry data (for external integrations)',
-    example: `curl -X POST http://localhost:3002/api/telemetry \\
+    },
+    {
+      method: 'POST',
+      path: '/api/telemetry',
+      description: 'Disabled — returns 405. Data ingestion is handled by the Gateway via UDP→Socket.io pipeline.',
+      example: `curl -X POST "${base}/api/telemetry" \\
   -H "Content-Type: application/json" \\
   -d '{"speed": 95, "rpm": 8500, "motor_temp": 72}'`,
-    response: `{
-  "success": true,
-  "data": { ... }
+      response: `{
+  "error": "POST method via REST API is disabled. Telemetry Gateway streams directly to InfluxDB and Socket.io for performance reasons."
 }`,
-  },
-];
+    },
+  ];
+}
 
 function EndpointCard({ ep }: { ep: Endpoint }) {
   const [expanded, setExpanded] = useState(false);
@@ -173,6 +182,15 @@ function EndpointCard({ ep }: { ep: Endpoint }) {
 }
 
 export default function ApiPage() {
+  const [origin, setOrigin] = useState(PLACEHOLDER_ORIGIN);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  const endpoints = useMemo(() => buildEndpoints(origin), [origin]);
+  const base = origin.replace(/\/$/, '');
+
   return (
     <main className={styles.page}>
       <header className={styles.header}>
@@ -180,10 +198,13 @@ export default function ApiPage() {
           <h1 className={styles.title}>
             <Code size={24} /> REST API
           </h1>
-          <p className={styles.subtitle}>HTTP endpoints for telemetry data access</p>
+          <p className={styles.subtitle}>
+            Dashboard proxy endpoints — data comes from the Pi Gateway via{' '}
+            <code>GATEWAY_URL</code>
+          </p>
         </div>
         <div className={styles.baseBadge}>
-          Base URL: <code>http://localhost:3002</code>
+          Base URL: <code>{base}</code>
         </div>
       </header>
 
@@ -198,15 +219,15 @@ export default function ApiPage() {
         <div className={styles.infoGrid}>
           <div className={styles.infoCard}>
             <h4>Python</h4>
-            <pre className={styles.codeBlock}>{`import requests\ndata = requests.get("http://localhost:3002/api/telemetry").json()\nprint(f"Speed: {data['speed']} km/h")`}</pre>
+            <pre className={styles.codeBlock}>{`import requests\n\nBASE = "${base}"\ndata = requests.get(f"{BASE}/api/telemetry").json()\nprint(f"Speed: {data['speed']} km/h")`}</pre>
           </div>
           <div className={styles.infoCard}>
-            <h4>JavaScript</h4>
+            <h4>JavaScript (browser)</h4>
             <pre className={styles.codeBlock}>{`const res = await fetch("/api/telemetry");\nconst data = await res.json();\nconsole.log(\`Speed: \${data.speed} km/h\`);`}</pre>
           </div>
           <div className={styles.infoCard}>
-            <h4>Grafana</h4>
-            <pre className={styles.codeBlock}>{`Data source: JSON API\nURL: http://localhost:3002/api/telemetry?mode=history`}</pre>
+            <h4>MATLAB</h4>
+            <pre className={styles.codeBlock}>{`base = "${base}";\ndata = webread(base + "/api/telemetry");\nfprintf("Speed: %d km/h\\n", data.speed);`}</pre>
           </div>
         </div>
       </div>

@@ -25,10 +25,13 @@
   position: relative;
   width: 32px;
   height: 180px;
-  background-color: var(--bg-main);
-  border: 1px solid var(--border-color);
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
   overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .barFill {
@@ -76,9 +79,10 @@
 
 .valueNumber {
   font-family: var(--font-orbitron), sans-serif;
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.75rem;
+  font-weight: 800;
   color: var(--kou-white);
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
 }
 
 .valueUnit {

@@ -1,116 +1,106 @@
 import { NextResponse } from 'next/server';
-import { InfluxDB } from '@influxdata/influxdb-client';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const token = process.env.INFLUX_TOKEN || '';
-const org = process.env.INFLUX_ORG || 'KOURACING';
-const bucket = process.env.INFLUX_BUCKET || 'telemetry_data';
-const url = process.env.INFLUX_URL || 'http://localhost:8086';
+/**
+ * Gateway API Proxy — Vercel SSR layer.
+ * Instead of connecting to InfluxDB directly, the Dashboard
+ * proxies requests through the Raspberry Pi Gateway's REST API.
+ * This keeps InfluxDB completely private (never exposed to the internet).
+ */
 
-const client = new InfluxDB({ url, token });
-const queryApi = client.getQueryApi(org);
+const GATEWAY_URL = process.env.GATEWAY_URL || 'https://telemetry.kouracing.com';
+const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY || '';
+
+async function gatewayFetch(path: string): Promise<Response> {
+  const headers: Record<string, string> = {};
+  if (GATEWAY_API_KEY) {
+    headers['x-api-key'] = GATEWAY_API_KEY;
+  }
+  return fetch(`${GATEWAY_URL}${path}`, {
+    headers,
+    cache: 'no-store',
+    signal: AbortSignal.timeout(10000), // 4G timeout tolerance
+  });
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get('mode') || 'latest';
-  const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 500);
 
   try {
     if (mode === 'history') {
-      const fluxQuery = `
-        from(bucket: "${bucket}")
-          |> range(start: -${limit}s)
-          |> filter(fn: (r) => r._measurement == "telemetry")
-          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-          |> sort(columns: ["_time"], desc: false)
-      `;
+      const seconds = searchParams.get('seconds') || '3600';
+      const minutes = Math.ceil(
+        Math.min(Math.max(parseInt(seconds, 10) || 3600, 10), 86400) / 60
+      );
 
-      const data: any[] = [];
-      await new Promise<void>((resolve, reject) => {
-        queryApi.queryRows(fluxQuery, {
-          next(row: any, tableMeta: any) {
-            const o = tableMeta.toObject(row);
-            data.push({
-              timestamp: new Date(o._time).getTime(),
-              speed: Number(o.speed || 0),
-              rpm: Number(o.rpm || 0),
-              motor_temp: Number(o.motor_temp || 0),
-              battery_voltage: Number(o.battery_voltage || 0),
-              throttle: Number(o.throttle || 0),
-              vehicle_state: o.vehicle_state || 'Offline',
-              inverter_status: o.inverter_status || 'Offline',
-              fault: o.fault === "true" || o.fault === true,
-              fault_type: o.fault_type || 'None'
-            });
-          },
-          error(error: any) { reject(error); },
-          complete() { resolve(); }
+      const res = await gatewayFetch(`/api/telemetry/history?minutes=${minutes}`);
+      if (!res.ok) {
+        return NextResponse.json(
+          { error: 'Gateway unreachable', status: res.status },
+          { status: 502 }
+        );
+      }
+
+      const rows = await res.json();
+
+      // Gateway format → Dashboard format transformation
+      const data = Array.isArray(rows)
+        ? rows.map((r: Record<string, any>) => ({
+            timestamp: r._time ? new Date(r._time as string).getTime() : Date.now(),
+            speed: Number(r.speed || 0),
+            rpm: Number(r.rpm || 0),
+            motor_temp: Number(r.motor_temp || 0),
+            battery_voltage: Number(r.battery_voltage || 0),
+            throttle: Number(r.throttle || 0),
+            vehicle_state: (r.vehicle_state as string) || 'Offline',
+            inverter_status: (r.inverter_status as string) || 'Offline',
+            fault: r.fault === 'true' || r.fault === true,
+            fault_type: (r.fault_type as string) || 'None',
+          }))
+        : [];
+
+      return NextResponse.json({ count: data.length, data });
+    }
+
+    // mode === 'latest'
+    const res = await gatewayFetch('/api/telemetry/latest');
+    if (!res.ok) {
+      // 404 = no data yet, normal state
+      if (res.status === 404) {
+        return NextResponse.json({
+          vehicle_state: 'Offline',
+          info: 'No telemetry data available yet',
         });
-      });
-
-      return NextResponse.json({ count: data.length, data }, { headers: { 'Access-Control-Allow-Origin': '*' } });
+      }
+      return NextResponse.json(
+        { error: 'Gateway unreachable', status: res.status },
+        { status: 502 }
+      );
     }
 
-    // Default: latest
-    const fluxQueryLatest = `
-      from(bucket: "${bucket}")
-        |> range(start: -10s)
-        |> filter(fn: (r) => r._measurement == "telemetry")
-        |> last()
-        |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-    `;
-    const data: any[] = [];
-    await new Promise<void>((resolve, reject) => {
-      queryApi.queryRows(fluxQueryLatest, {
-        next(row: any, tableMeta: any) {
-          data.push(tableMeta.toObject(row));
-        },
-        error(error: any) { reject(error); },
-        complete() { resolve(); }
-      });
+    const latestData = await res.json();
+    return NextResponse.json({
+      ...latestData,
+      timestamp: Date.now(),
     });
-
-    if (data.length === 0) {
-       return NextResponse.json({ vehicle_state: 'Offline', info: 'No recent data in InfluxDB' }, { headers: { 'Access-Control-Allow-Origin': '*' } });
-    }
-
-    const o = data[0];
-    const latestTelemetry = {
-      timestamp: new Date(o._time).getTime(),
-      speed: Number(o.speed || 0),
-      rpm: Number(o.rpm || 0),
-      motor_temp: Number(o.motor_temp || 0),
-      battery_voltage: Number(o.battery_voltage || 0),
-      throttle: Number(o.throttle || 0),
-      vehicle_state: o.vehicle_state || 'Online',
-      inverter_status: o.inverter_status || 'Active',
-      fault: o.fault === "true" || o.fault === true,
-      fault_type: o.fault_type || 'None'
-    };
-
-    return NextResponse.json(latestTelemetry, { headers: { 'Access-Control-Allow-Origin': '*' } });
-
   } catch (err) {
-    console.error('InfluxDB Query Error:', err);
-    return NextResponse.json({ error: 'Database connection failed' }, { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } });
+    const msg = err instanceof Error ? err.message : String(err);
+    // 4G timeout or network error — dashboard continues in offline mode
+    return NextResponse.json(
+      { error: 'Gateway connection failed', detail: msg, vehicle_state: 'Offline' },
+      { status: 502 }
+    );
   }
 }
 
 export async function POST() {
   return NextResponse.json(
-    { error: 'POST method via REST API is disabled. Telemetry Gateway streams directly to InfluxDB and Socket.io for performance reasons.' },
-    { status: 405, headers: { 'Access-Control-Allow-Origin': '*' } }
-  );
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+    {
+      error:
+        'POST method via REST API is disabled. Telemetry Gateway streams directly to InfluxDB and Socket.io for performance reasons.',
     },
-  });
+    { status: 405 }
+  );
 }

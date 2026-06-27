@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { History, Download, Trash2, Play, Clock, Database } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { History, Download, Trash2, Play, Clock, Database, BarChart2 } from 'lucide-react';
 import { useTelemetryStore } from '../../store/useTelemetryStore';
 import styles from './page.module.css';
 
@@ -27,30 +27,87 @@ function saveSessions(sessions: SessionRecord[]) {
   localStorage.setItem('kou_telemetry_sessions', JSON.stringify(sessions));
 }
 
+// Asynchronously loads a tiny fraction of the session data to draw a real sparkline preview
+const SessionThumbnail = ({ sessionId }: { sessionId: string }) => {
+  const [data, setData] = useState<number[] | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    import('../../utils/idb').then(({ getSessionData }) => {
+      getSessionData(sessionId).then((res: any) => {
+        if (!mounted || !res || !res.speed || res.speed.length === 0) return;
+        // Downsample to max 50 points for the thumbnail
+        const speeds = res.speed as number[];
+        const step = Math.max(1, Math.floor(speeds.length / 50));
+        const sampled = speeds.filter((_, i) => i % step === 0);
+        setData(sampled);
+      });
+    }).catch(console.error);
+    return () => { mounted = false; };
+  }, [sessionId]);
+
+  if (!data) return <div className={styles.thumbnailPreview}><BarChart2 size={16} style={{marginRight: '8px'}}/> Loading...</div>;
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const width = 200;
+  const height = 40;
+
+  const points = data.map((val, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((val - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <div className={styles.thumbnailPreview} style={{ padding: '0.5rem 1rem' }}>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id={`grad-${sessionId}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <polygon points={`0,${height} ${points} ${width},${height}`} fill={`url(#grad-${sessionId})`} />
+        <polyline points={points} fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+};
+
 export default function HistoryPage() {
   const history = useTelemetryStore((s) => s.history);
-  const [sessions, setSessions] = useState<SessionRecord[]>(getStoredSessions);
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [savedMsg, setSavedMsg] = useState('');
 
-  // LocalStorage hala sadece Session MetaData'yı tutuyor (hafif, asenkron gerekmez)
+  // Hydration fix: load sessions from localStorage only after initial mount
+  useEffect(() => {
+    setSessions(getStoredSessions());
+  }, []);
+
+  // LocalStorage still only holds session metadata (lightweight, no async needed)
   const saveCurrentSession = useCallback(async () => {
     if (history.time.length === 0) return;
 
     const now = new Date();
     const id = `session_${Date.now()}`;
-    const durationSec = history.time.length;
+    // Calculate actual duration from timestamps, not from data point count
+    const durationSec = history.time.length > 1
+      ? history.time[history.time.length - 1] - history.time[0]
+      : 0;
     const mins = Math.floor(durationSec / 60);
-    const secs = durationSec % 60;
+    const secs = Math.floor(durationSec % 60);
 
     const session: SessionRecord = {
       id,
       name: `Session ${sessions.length + 1}`,
-      date: now.toLocaleString('tr-TR'),
+      date: now.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
       dataPoints: history.time.length,
       duration: `${mins}m ${secs}s`,
     };
 
-    // HISTORY OBJEKSİNİ ASENKRON OLARAK INDEXEDDB'YE KAYDET (Ağır İşlem)
+    // Save history object to IndexedDB asynchronously (heavy operation)
     try {
       const { saveSessionData } = await import('../../utils/idb');
       await saveSessionData(id, history);
@@ -68,11 +125,12 @@ export default function HistoryPage() {
   }, [history, sessions]);
 
   const deleteSession = useCallback(async (id: string) => {
+    if (!confirm('Are you sure you want to delete this session?')) return;
     const updated = sessions.filter((s) => s.id !== id);
     setSessions(updated);
     saveSessions(updated);
     
-    // IndexedDB'den veriyi sil
+    // Delete data from IndexedDB
     try {
       const { deleteSessionData } = await import('../../utils/idb');
       await deleteSessionData(id);
@@ -131,10 +189,11 @@ export default function HistoryPage() {
         <div className={styles.grid}>
           {sessions.map((session) => (
             <div key={session.id} className={styles.card}>
+              <div className={styles.cardColorBar} />
               <div className={styles.cardHeader}>
                 <h3 className={styles.cardTitle}>{session.name}</h3>
                 <div className={styles.cardActions}>
-                  <button className={styles.iconBtn} onClick={() => downloadSession(session.id)} title="Download">
+                  <button className={styles.iconBtn} onClick={() => downloadSession(session.id)} title="Download JSON">
                     <Download size={14} />
                   </button>
                   <button className={`${styles.iconBtn} ${styles.deleteBtn}`} onClick={() => deleteSession(session.id)} title="Delete">
@@ -142,6 +201,9 @@ export default function HistoryPage() {
                   </button>
                 </div>
               </div>
+              
+              <SessionThumbnail sessionId={session.id} />
+
               <div className={styles.cardBody}>
                 <div className={styles.cardStat}>
                   <Clock size={14} />
@@ -153,7 +215,7 @@ export default function HistoryPage() {
                 </div>
                 <div className={styles.cardStat}>
                   <Database size={14} />
-                  <span>{session.dataPoints} data points</span>
+                  <span>{session.dataPoints.toLocaleString()} data points</span>
                 </div>
               </div>
             </div>

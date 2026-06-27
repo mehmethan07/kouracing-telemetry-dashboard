@@ -1,51 +1,37 @@
 # KOU Racing Telemetry Dashboard
 
-High-performance real-time visualization and analytics platform for Formula Student EV telemetry data.
+A high-performance web-based telemetry dashboard built for KOU Racing. Designed to handle continuous, high-frequency (60Hz) data streams with zero-allocation binary parsing and efficient memory management.
 
-![License](https://img.shields.io/badge/license-MIT-green)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
-![Socket.io](https://img.shields.io/badge/Socket.io-4.x-blue)
+## Architecture & Performance
 
-## Features
+The dashboard is built to operate under strict performance constraints, minimizing garbage collection (GC) pauses and React re-render overhead:
 
-- **Real-Time Data Streaming:** Sub-second telemetry updates via Socket.io from the KOU Racing Telemetry Gateway.
-- **High-Performance Charts:** Utilizes `uPlot` for rendering thousands of data points with minimal CPU overhead.
-- **Dynamic Track Map:** Live vehicle position tracking with integrated motor temperature heat-mapping.
-- **Lap Analysis:** Automatic lap detection and performance breakdown (Duration, Avg/Max Speed, RPM peaks).
-- **Session Comparison:** Overlay historical telemetry data from multiple sessions for detailed competitive analysis.
-- **Fault Management:** Real-time fault alerts and system event logs with human-readable error descriptions.
-- **REST API Docs:** Interactive documentation for accessing telemetry history and session data programmatically.
-
-## Architecture
-
-```text
-Vehicle → UDP → Telemetry Gateway (Node.js) → InfluxDB
-                                  ↓
-                          Socket.io (3001)
-                                  ↓
-                  Telemetry Dashboard (Next.js/React)
-```
+- **End-to-End Binary Protocol:** Operates over native WebSockets using raw `ArrayBuffer` payloads (28-byte Little-Endian packets), eliminating JSON parsing overhead.
+- **Zero-Allocation Ring Buffers:** Incoming telemetry is stored in pre-allocated `Float64Array` ring buffers using a Struct-of-Arrays (SoA) layout. This ensures O(1) reads/writes and generates zero GC pressure during active sessions.
+- **rAF Render Loop:** UI updates are decoupled from network events. A `requestAnimationFrame` loop flushes buffered data to the global state at a controlled rate, preventing React render thrashing.
+- **Direct DOM Manipulation:** High-frequency UI components (e.g., speed readouts) bypass the React reconciliation cycle entirely by writing directly to `Element.textContent`.
+- **Canvas Rendering:** Time-series charts utilize `uPlot` for rendering thousands of data points at 60fps without DOM bloat.
 
 ## Tech Stack
 
-- **Framework:** Next.js 14 (App Router)
+- **Framework:** Next.js (App Router)
+- **Language:** TypeScript
 - **State Management:** Zustand
-- **Visualization:** uPlot, Lucide Icons
-- **Communication:** Socket.io-client
-- **Styling:** CSS Modules, Vanilla CSS (Custom KOU Racing Design System)
+- **Charting:** uPlot
+- **Icons:** Lucide React
+- **Database Client:** InfluxDB Client (for historical data hydration)
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- Running instance of [KOU Racing Telemetry Gateway](https://github.com/mehmethan07/kouracing-telemetry)
+- Node.js (v20 or higher recommended)
+- npm or yarn
 
 ### Installation
 
-1. Clone the repository:
+1. Clone the repository and navigate to the project directory:
    ```bash
-   git clone https://github.com/mehmethan07/kouracing-telemetry-dashboard.git
    cd telemetry-dashboard
    ```
 
@@ -54,49 +40,37 @@ Vehicle → UDP → Telemetry Gateway (Node.js) → InfluxDB
    npm install
    ```
 
-3. Configure Environment Variables:
-   Create a `.env.local` file based on `.env.example`.
-   ```bash
-   cp .env.example .env.local
-   ```
+3. Create a `.env.local` file in the root directory and configure the required environment variables (see below).
 
-4. Run Local Development Server:
+4. Start the development server:
    ```bash
    npm run dev
    ```
-   > **Note:** For local development on your own computer, you do not need Docker. You can simply use `npm run dev` and work normally.
+   The dashboard will be available at `http://localhost:3005`.
 
-## Deployment (Raspberry Pi / Production)
+## Environment Variables
 
-The project includes Docker configuration optimized for Next.js standalone mode, perfectly suited for running on a Raspberry Pi 5 inside the race car.
+| Variable | Description |
+| :--- | :--- |
+| `NEXT_PUBLIC_WS_URL` | WebSocket server URL (e.g., `ws://localhost:3005` or `wss://your-domain.com`). |
+| `NEXT_PUBLIC_HISTORY_WINDOW_SEC` | The time window (in seconds) of historical data to fetch on initial load (default: `28800`). |
 
-1. Ensure Docker and Docker Compose are installed on your target device.
-2. Clone/copy the project to the device.
-3. Start the application in detached mode:
-   ```bash
-   docker compose up -d --build
-   ```
+*(Additional environment variables for InfluxDB or backend configuration should be added to `.env.local` as required by your specific backend setup).*
 
-The dashboard will automatically restart whenever the vehicle/Raspberry Pi is powered on. To view logs, use:
+## Build for Production
+
+To create an optimized production build:
+
 ```bash
-docker compose logs -f
+npm run build
 ```
 
-## Development
+To start the production server:
 
-### Project Structure
-```text
-src/
-├── app/             # Next.js Pages & Server/Client Routes
-├── components/      # Reusable UI Components (Charts, TrackMap)
-└── store/           # Zustand State Management & Socket Connections
+```bash
+npm start
 ```
 
----
+## Deployment
 
-## License
-
-This project is licensed under the MIT License.
-
-## About KOU Racing
-KOU Racing is the official Formula Student team of Kocaeli University. This dashboard is part of our integrated telemetry system designed for high-speed EV racing performance analysis.
+This project is optimized for deployment on Vercel. Ensure that your WebSocket endpoints are served over `wss://` if the dashboard is hosted on an `https://` domain, due to browser mixed-content security policies.

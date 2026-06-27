@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import styles from './AnimatedNumber.module.css';
 
 interface AnimatedNumberProps {
@@ -10,38 +10,65 @@ interface AnimatedNumberProps {
   className?: string;
 }
 
-export default function AnimatedNumber({ value, decimals = 0, duration = 300, className = '' }: AnimatedNumberProps) {
-  const [displayValue, setDisplayValue] = useState(value);
-  const previousValue = useRef(value);
-  const rafId = useRef<number>(0);
+/**
+ * AnimatedNumber — Direct DOM Manipulation Edition
+ *
+ * ⚡ Performance: bypasses React's render cycle entirely.
+ *    Instead of setState (which triggers reconciliation + commit for every rAF frame),
+ *    we write directly to `spanRef.current.textContent`.
+ *
+ * Old approach: useState + rAF → ~3 setState calls per animation (each causes re-render)
+ * New approach: ref.current.textContent = value → ZERO re-renders during animation
+ *
+ * The initial `{value.toFixed(decimals)}` in JSX handles SSR hydration;
+ * after mount, the rAF loop takes full ownership of the DOM text node.
+ */
+export default function AnimatedNumber({
+  value,
+  decimals = 0,
+  duration = 40,
+  className = '',
+}: AnimatedNumberProps) {
+  const spanRef  = useRef<HTMLSpanElement>(null);
+  // Store mutable animation state in a ref — avoids any useState overhead
+  const animRef  = useRef({ prev: value, rafId: 0 });
 
   useEffect(() => {
-    const startValue = previousValue.current;
-    const endValue = value;
+    const anim      = animRef.current;
+    const startVal  = anim.prev;
+    const endVal    = value;
     const startTime = performance.now();
 
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
+    cancelAnimationFrame(anim.rafId);
+
+    const animate = (now: number) => {
+      const elapsed  = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // easeOutCubic for smooth deceleration
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = startValue + (endValue - startValue) * eased;
-      setDisplayValue(current);
+      // easeOutCubic — smooth deceleration
+      const eased    = 1 - Math.pow(1 - progress, 3);
+      const current  = startVal + (endVal - startVal) * eased;
+
+      // ⚡ Direct DOM write — zero React involvement
+      if (spanRef.current) {
+        spanRef.current.textContent = current.toFixed(decimals);
+      }
 
       if (progress < 1) {
-        rafId.current = requestAnimationFrame(animate);
+        anim.rafId = requestAnimationFrame(animate);
       } else {
-        previousValue.current = endValue;
+        anim.prev  = endVal;
       }
     };
 
-    rafId.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rafId.current);
-  }, [value, duration]);
+    anim.rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(anim.rafId);
+  }, [value, duration, decimals]);
 
+  // Initial value rendered in JSX ensures correct SSR hydration;
+  // the rAF loop overwrites textContent immediately on mount.
   return (
-    <span className={`${styles.number} ${className}`}>
-      {displayValue.toFixed(decimals)}
+    <span ref={spanRef} className={`${styles.number} ${className}`}>
+      {value.toFixed(decimals)}
     </span>
   );
 }

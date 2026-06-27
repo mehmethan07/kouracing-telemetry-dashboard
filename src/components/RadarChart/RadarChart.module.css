@@ -1,0 +1,55 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  animation: fadeIn 0.4s ease;
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--kou-white);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: var(--font-orbitron), sans-serif;
+  margin-bottom: 0.5rem;
+  align-self: flex-start;
+}
+
+.svg {
+  display: block;
+  overflow: visible;
+}
+
+.gridLine {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 1;
+}
+
+.axisLine {
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.axisLabel {
+  fill: var(--text-muted);
+  font-size: 0.65rem;
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dataPolygon {
+  transition: all 0.3s ease;
+}
+
+.dataPolygon:hover {
+  fill-opacity: 0.4;
+}

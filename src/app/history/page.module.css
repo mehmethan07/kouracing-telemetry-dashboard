@@ -2,6 +2,9 @@
   padding: 1.5rem 2rem;
   max-width: 1600px;
   margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
@@ -63,12 +66,14 @@
 .saveBtn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
+  box-shadow: var(--shadow-glow-green);
 }
 
 .saveBtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .empty {
@@ -89,34 +94,51 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 1.25rem;
 }
 
 .card {
-  background-color: var(--bg-panel);
+  background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .card:hover {
-  border-color: rgba(255, 255, 255, 0.08);
-  background-color: var(--bg-panel-hover);
+  border-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.04);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.cardColorBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-blue);
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+  align-items: flex-start;
 }
 
 .cardTitle {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: var(--kou-white);
+  font-family: var(--font-orbitron), sans-serif;
+  letter-spacing: 0.05em;
 }
 
 .cardActions {
@@ -131,7 +153,7 @@
   width: 28px;
   height: 28px;
   border: 1px solid var(--border-color);
-  background: none;
+  background: rgba(255, 255, 255, 0.02);
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -139,19 +161,23 @@
 }
 
 .iconBtn:hover {
-  border-color: var(--kou-green);
-  color: var(--kou-green);
+  border-color: var(--status-info);
+  color: var(--status-info);
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .deleteBtn:hover {
   border-color: var(--status-danger) !important;
   color: var(--status-danger) !important;
+  background: rgba(239, 68, 68, 0.1) !important;
 }
 
 .cardBody {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
 }
 
 .cardStat {
@@ -160,6 +186,26 @@
   gap: 0.5rem;
   color: var(--text-muted);
   font-size: 0.8rem;
+}
+
+.cardStat span {
+  color: var(--kou-silver);
+  font-family: var(--font-orbitron), monospace;
+}
+
+.thumbnailPreview {
+  width: 100%;
+  height: 60px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  border: 1px dashed var(--border-color);
+  opacity: 0.5;
 }
 
 @keyframes fadeIn {

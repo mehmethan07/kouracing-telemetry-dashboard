@@ -12,22 +12,22 @@
 }
 
 .title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dimmed);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
 }
 
 .lapBadge {
   font-family: var(--font-orbitron), monospace;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--kou-green);
-  padding: 0.25rem 0.75rem;
-  border: 1px solid var(--kou-green);
+  padding: 0.2rem 0.65rem;
+  border: 1px solid rgba(0, 102, 94, 0.3);
   border-radius: var(--radius-md);
-  background-color: rgba(0, 102, 94, 0.1);
+  background-color: rgba(0, 102, 94, 0.08);
 }
 
 .svg {
@@ -37,4 +37,29 @@
 
 .car {
   transition: cx 0.5s ease, cy 0.5s ease;
+}
+
+/* Heat Legend */
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.6rem;
+  color: var(--text-dimmed);
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
 }

@@ -118,12 +118,44 @@
   opacity: 0.6;
 }
 
+.legendContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  margin-top: 0.5rem;
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border-color);
+}
+
+.controls {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.controlLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.controlLabel input[type="range"] {
+  width: 80px;
+  accent-color: var(--kou-green);
 }
 
 .legendItem {
@@ -145,7 +177,85 @@
   font-size: 0.7rem;
 }
 
+/* Phase 3 Layout */
+.phase3Grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.phase3Panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.scatterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .phase3Grid, .scatterGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Bottom Section */
+.bottomSection {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.summaryWrapper {
+  margin-bottom: 0;
+}
+
+.exportBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid var(--kou-green);
+  color: var(--kou-green);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-inter), sans-serif;
+  text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.exportBtn:hover {
+  background: var(--kou-green);
+  color: var(--kou-dark);
+  box-shadow: 0 0 10px var(--kou-green-glow);
+}
+
 /* Charts */
+.deltaChartWrapper {
+  margin-bottom: 2rem;
+  animation: fadeIn 0.4s ease;
+}
+
+.deltaChartTitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--status-ok);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.75rem;
+  font-family: var(--font-orbitron), sans-serif;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
 .chartsGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -179,6 +289,93 @@
 .empty h2 {
   font-size: 1.25rem;
   color: var(--kou-white);
+}
+
+/* Leaderboard & Live Delta */
+.leaderboardSection {
+  margin-top: 2rem;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.3s ease;
+}
+
+.leaderboardTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--kou-white);
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+  font-family: var(--font-orbitron), sans-serif;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.leaderboardTitle::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--kou-green);
+  box-shadow: 0 0 10px var(--kou-green-glow);
+}
+
+.leaderboardTableWrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.leaderboardTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.leaderboardTable th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.leaderboardTable td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--kou-white);
+  font-family: var(--font-orbitron), monospace;
+  white-space: nowrap;
+}
+
+.leaderboardTable tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.leaderboardTable tr:last-child td {
+  border-bottom: none;
+}
+
+.bestStat {
+  color: var(--kou-green) !important;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+}
+
+.deltaSpan {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 600;
 }
 
 @media (max-width: 900px) {

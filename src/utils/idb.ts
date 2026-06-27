@@ -12,7 +12,7 @@ export const getDB = (): Promise<IDBDatabase> => {
   });
 };
 
-export const saveSessionData = async (id: string, data: Record<string, unknown>): Promise<void> => {
+export const saveSessionData = async (id: string, data: Record<string, unknown> | object): Promise<void> => {
   const db = await getDB();
   const tx = db.transaction('sessions', 'readwrite');
   tx.objectStore('sessions').put({ id, data });

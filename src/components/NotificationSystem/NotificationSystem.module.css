@@ -1,0 +1,98 @@
+.container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.toast {
+  width: 320px;
+  background-color: var(--bg-panel-solid);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+  position: relative;
+  overflow: hidden;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toastsuccess { border-left: 4px solid var(--status-ok); }
+.toastwarning { border-left: 4px solid var(--status-warning); }
+.toastdanger { border-left: 4px solid var(--status-danger); }
+.toastinfo { border-left: 4px solid var(--status-info); }
+
+.iconContainer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.1rem;
+}
+
+.iconSuccess { color: var(--status-ok); }
+.iconWarning { color: var(--status-warning); }
+.iconDanger { color: var(--status-danger); }
+.iconInfo { color: var(--status-info); }
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--kou-white);
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.message {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-dimmed);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-self: flex-start;
+  transition: all 0.2s ease;
+}
+
+.closeBtn:hover {
+  color: var(--kou-white);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.progressBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background-color: rgba(255, 255, 255, 0.2);
+  animation: progress 5s linear forwards;
+}
+
+.toastsuccess .progressBar { background-color: var(--status-ok); }
+.toastwarning .progressBar { background-color: var(--status-warning); }
+.toastdanger .progressBar { background-color: var(--status-danger); }
+.toastinfo .progressBar { background-color: var(--status-info); }
+
+@keyframes progress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
