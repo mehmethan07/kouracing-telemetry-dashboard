@@ -9,7 +9,7 @@ import { NextResponse } from 'next/server';
  * This keeps InfluxDB completely private (never exposed to the internet).
  */
 
-const GATEWAY_URL = process.env.GATEWAY_URL || 'https://kouracing.motostud.io';
+const GATEWAY_URL = process.env.GATEWAY_URL || '';
 const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY || '';
 
 async function gatewayFetch(path: string): Promise<Response> {

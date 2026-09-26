@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const GATEWAY_URL = process.env.GATEWAY_URL || 'https://kouracing.motostud.io';
+const GATEWAY_URL = process.env.GATEWAY_URL || '';
 const GATEWAY_API_KEY = process.env.GATEWAY_API_KEY || '';
 
 async function gatewayFetch(path: string, options: RequestInit = {}): Promise<Response> {
